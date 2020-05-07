@@ -1,28 +1,20 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Linking } from 'expo';
+
+import { Router, Stack, Scene } from "react-native-router-flux"
+
+import Greeting from "./Greeting"
+import Login from "./Login"
 
 export default props => {
 
-    const handleContinue = _ => {
-        Linking.openURL("https://securechatapp.us/messages")
-    }
-
     return (
-        <View style={styles.container}>
-            <Text>Welcome to SecureChat link!</Text>
-            <TouchableOpacity onPress = {handleContinue}>
-                <Text>Continue</Text>
-            </TouchableOpacity>
-        </View>
+        <Router>
+            <Stack key="root">
+                <Scene key="greeting" component={Greeting} title="Greetings" />
+                <Scene key="login" component={Login} title="Login" />
+            </Stack>
+        </Router>
     )
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-})
