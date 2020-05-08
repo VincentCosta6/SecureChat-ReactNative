@@ -1,20 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-import { Router, Stack, Scene } from "react-native-router-flux"
+import { NativeRouter, Route, Switch } from "react-router-native"
+import { Provider as PaperProvider } from 'react-native-paper'
 
+import Startup from "./Startup"
 import Greeting from "./Greeting"
 import Login from "./Login"
+import Dashboard from "./Dashboard"
 
 export default props => {
-
     return (
-        <Router>
-            <Stack key="root">
-                <Scene key="greeting" component={Greeting} title="Greetings" />
-                <Scene key="login" component={Login} title="Login" />
-            </Stack>
-        </Router>
+        <NativeRouter>
+            <PaperProvider>
+                <Switch>
+                    <Route exact path="/" component={Startup} />
+                    <Route exact path="/greeting" component={Greeting} />
+                    <Route exact path="/login" component={Login} />
+
+                    <Route exact path="/dashboard" component={Dashboard} />
+                </Switch>
+            </PaperProvider>
+        </NativeRouter>
     )
 }
 

@@ -1,7 +1,13 @@
 import React from "react"
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-export default props => {
+import { withRouter } from "react-router-native"
+
+export const Greeting = props => {
+    const handleContinue = _ => {
+        props.history.push("/login")
+    }
+
     return (
         <View style={styles.container}>
             <Text>Welcome to SecureChat link!</Text>
@@ -20,3 +26,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 })
+
+export default withRouter(Greeting)
