@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 
 import { ActivityIndicator, TextInput, Button, Dialog, RadioButton } from 'react-native-paper'
 
@@ -28,14 +28,14 @@ export const Dashboard = props => {
         const userString = SecureStore.getItemAsync("user")
         const subscriptionString = SecureStore.getItemAsync("subscription")
 
-        const result = await Promise.all([ tokenString, userString, subscriptionString ])
+        const result = await Promise.all([tokenString, userString, subscriptionString])
 
         setToken(result[0])
 
         const userObj = JSON.parse(result[1])
         setUsername(userObj.username)
 
-        if(!result[2]) {
+        if (!result[2]) {
             setSubToken("none")
         }
         else {
@@ -44,11 +44,13 @@ export const Dashboard = props => {
     }
 
     const logOut = async _ => {
+        if (subscriptionToken && subscriptionToken !== "none")
+            await handleDeleteSubscription()
+
         const deleteToken = SecureStore.setItemAsync("token", "cleared")
         const deleteUser = SecureStore.deleteItemAsync("user")
-        const deleteSubscription = SecureStore.deleteItemAsync("subscription")
 
-        await Promise.all([ deleteToken, deleteUser, deleteSubscription ])
+        await Promise.all([deleteToken, deleteUser])
 
         props.history.push("/login")
     }
@@ -67,13 +69,22 @@ export const Dashboard = props => {
             const { status } = await Permissions.askAsync(Permissions.NOTIFICATIONS)
             finalStatus = status
         }
-        console.log('push notification status ', finalStatus)
+
         if (finalStatus !== 'granted') {
             return
         }
         let token2 = await Notifications.getExpoPushTokenAsync()
 
-        console.log(token2)
+        console.log(Platform.OS)
+
+        if (Platform.OS === 'android') {
+            Notifications.createChannelAndroidAsync('securechat-linker', {
+                name: 'securechat-linker',
+                sound: true,
+                priority: 'max',
+                vibrate: [0, 250, 250, 250],
+            })
+        }
 
         try {
             const res = await fetch("https://servicetechlink.com/subscription", {
@@ -85,47 +96,71 @@ export const Dashboard = props => {
                 method: "POST",
                 body: JSON.stringify({ Endpoint: token2, Type: "expo" })
             })
-            
+
             const json = await res.json()
-            console.log(json)
+
             setCreatingSub(false)
+            setDialogVisible(false)
             setSubToken(token2)
+
             await SecureStore.setItemAsync("subscription", token2)
         }
-        catch(e) {
+        catch (e) {
             setCreatingSub(false)
         }
     }
 
+    const handleDeleteSubscription = async _ => {
+        const res = await fetch("https://servicetechlink.com/subscription", {
+            headers: {
+                'Accept': "application/json",
+                'Content-Type': "application/json",
+                'Authorization': token
+            },
+            method: "DELETE",
+            body: JSON.stringify({ Endpoint: subscriptionToken })
+        })
+
+        await SecureStore.deleteItemAsync("subscription")
+        setSubToken("none")
+    }
+
     return (
         <View style={styles.container}>
-            <Text style = {styles.titleText}>Hello {username}</Text>
-            { subscriptionToken !== "" && subscriptionToken !== "none" && <Text style = {styles.titleText}>{subscriptionToken}</Text> }
+            <Text style={styles.titleText}>Hello {username}</Text>
+            {subscriptionToken !== "" && subscriptionToken !== "none" && <Text style={styles.titleText}>Subscription is active</Text>}
             {
-                !dialogVisible && 
+                !dialogVisible &&
                 <>
-                    { 
-                        subscriptionToken !== "" && 
-                        subscriptionToken === "none" && 
-                        <Button 
-                            style = {styles.subButton}
-                            mode = "contained" 
-                            onPress = {handleSubscripton}
-                        >
-                            Create Subscription
-                        </Button> 
+                    {
+                        subscriptionToken !== "" &&
+                            subscriptionToken === "none" ?
+                            <Button
+                                style={styles.subButton}
+                                mode="contained"
+                                onPress={handleSubscripton}
+                            >
+                                Create Subscription
+                        </Button> :
+                            <Button
+                                style={styles.subButton}
+                                mode="contained"
+                                onPress={handleDeleteSubscription}
+                            >
+                                Delete Subscription
+                        </Button>
                     }
-                    <Button mode = "contained" onPress = {logOut}>Log out</Button>
+                    <Button mode="contained" onPress={logOut}>Log out</Button>
                 </>
             }
 
             <Dialog
-                visible = {dialogVisible}
-                onDismiss = {_ => setDialogVisible(false)}
+                visible={dialogVisible}
+                onDismiss={_ => setDialogVisible(false)}
             >
                 <Dialog.Title>Create Subscription</Dialog.Title>
                 <Dialog.Content>
-                    <View style = {styles.urlRadioButton}>
+                    <View style={styles.urlRadioButton}>
                         <RadioButton
                             value="first"
                             status={radioButton === 'first' ? 'checked' : 'unchecked'}
@@ -133,7 +168,7 @@ export const Dashboard = props => {
                         />
                         <Text>securechat.netlify.app</Text>
                     </View>
-                    <View style = {styles.urlRadioButton}>
+                    <View style={styles.urlRadioButton}>
                         <RadioButton
                             value="second"
                             status={radioButton === 'second' ? 'checked' : 'unchecked'}
@@ -144,7 +179,7 @@ export const Dashboard = props => {
                 </Dialog.Content>
                 <Dialog.Actions>
                     <Button>Cancel</Button>
-                    <Button onPress = {createSubscription} loading = {creatingSub} disabled = {creatingSub}>Create</Button>
+                    <Button onPress={createSubscription} loading={creatingSub} disabled={creatingSub}>Create</Button>
                 </Dialog.Actions>
             </Dialog>
         </View>
@@ -156,7 +191,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: "column",
         justifyContent: "center",
-        
+
     },
     titleText: {
         fontSize: 35,
